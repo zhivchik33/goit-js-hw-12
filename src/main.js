@@ -1,5 +1,3 @@
-
-
 import iziToast from "izitoast";
 import "izitoast/dist/css/iziToast.min.css";
 import SimpleLightbox from "simplelightbox";
@@ -18,6 +16,7 @@ const loader = document.querySelector(".loader");
 const onSearchFormSubmit = async event => {
   try {
     event.preventDefault();
+
     currentPage = 1; 
     searchedValue = searchFormEl.elements.user_query.value.trim();
 
@@ -29,8 +28,9 @@ const onSearchFormSubmit = async event => {
       return;
     }
 
+    galleryEl.innerHTML = '';
+    loadMoreBtn.classList.add('is-hidden');
     loader.classList.remove('is-hidden');
-    loadMoreBtn.classList.add('is-hidden'); 
 
     const response = await fetchPhotos(searchedValue, currentPage);
     if (response.data.hits.length === 0) {
@@ -39,19 +39,20 @@ const onSearchFormSubmit = async event => {
         position: 'topRight',
       });
       loader.classList.add('is-hidden');
-      galleryEl.innerHTML = '';
       return;
     }
-
     const galleryCardsTemplate = response.data.hits.map(imgDetails => createGalleryCardTemplate(imgDetails)).join('');
     galleryEl.innerHTML = galleryCardsTemplate;
 
     loader.classList.add('is-hidden');
-    loadMoreBtn.classList.remove('is-hidden'); 
 
+    if (currentPage < Math.ceil(response.data.totalHits / 15)) {
+      loadMoreBtn.classList.remove('is-hidden');
+    }
     const galleryCardEl = galleryEl.querySelector('li');
-    cardHeight = galleryCardEl.getBoundingClientRect().height;
-
+    if (galleryCardEl) {
+      cardHeight = galleryCardEl.getBoundingClientRect().height;
+    }
     new SimpleLightbox('.js-gallery a', {
       captionsData: 'alt',
       captionDelay: 250,
@@ -61,26 +62,27 @@ const onSearchFormSubmit = async event => {
   } catch (err) {
     console.error(err);
   }
-}
+};
 
-const onLoadMore = async event => {
+const onLoadMore = async () => {
   try {
     currentPage++;
     loader.classList.remove('is-hidden');
-    loadMoreBtn.disabled = true; 
+    loadMoreBtn.disabled = true;
 
     const response = await fetchPhotos(searchedValue, currentPage);
     const galleryCardsTemplate = response.data.hits.map(imgDetails => createGalleryCardTemplate(imgDetails)).join('');
     galleryEl.insertAdjacentHTML("beforeend", galleryCardsTemplate);
 
     loader.classList.add('is-hidden');
-    loadMoreBtn.disabled = false; 
+    loadMoreBtn.disabled = false;
 
     scrollBy({
       top: cardHeight * 2,
       behavior: 'smooth',
     });
 
+  
     if (currentPage >= Math.ceil(response.data.totalHits / 15)) {
       loadMoreBtn.classList.add('is-hidden');
       iziToast.error({
@@ -92,7 +94,7 @@ const onLoadMore = async event => {
   } catch (err) {
     console.error(err);
   }
-}
+};
 
 searchFormEl.addEventListener("submit", onSearchFormSubmit);
 loadMoreBtn.addEventListener("click", onLoadMore);
